@@ -1,0 +1,24 @@
+{
+  "name": "ass3-web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yifatmakias/Ass3-web.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yifatmakias/Ass3-web/issues"
+  },
+  "homepage": "https://github.com/yifatmakias/Ass3-web#readme",
+  "dependencies": {
+    "express": "^4.17.0",
+    "tedious": "^6.1.1",
+    "tedious-connection-pool": "^1.0.5"
+  }
+}
