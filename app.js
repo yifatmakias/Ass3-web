@@ -2,10 +2,13 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
 var DButilsAzure = require('./DButils');
+var jwt = require("jsonwebtoken");
 
 app.use(bodyParser.json());
 
 var port = 3000;
+secret = "yifatandmoran";
+options = {expiresIn: "1d"};
 
 function getRandom(array) {
     var index = Math.floor(Math.random() * array.length);
@@ -203,10 +206,59 @@ async function getSavedListSize(user_name) {
     }
 }
 
+async function isPOISaved(user_name, poi_id) {
+    try {
+        const poi = await DButilsAzure.execQuery("SELECT * FROM users_favorites_poi WHERE user_name = '" + user_name +  "' AND poi_id = " + poi_id)
+        if (Object.keys(poi).length > 0) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+async function saveFavoriteList(user_name, poi_list) {
+    try {
+        for (var i=0; i < Object.keys(poi_list).length; i++) {
+            addSavedPOI(user_name, poi_list[i])
+        }
+        return("insert successfully");
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 async function login(user_name, password) {
     try {
-        const u = await DButilsAzure.execQuery("SELECT * FROM users WHERE user_name = '" +user_name +"' AND password = '" + password + "'")
-        return u;
+        const user = await DButilsAzure.execQuery("SELECT * FROM users WHERE user_name = '" +user_name +"' AND password = '" + password + "'")
+        if (Object.keys(user).length > 0) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+async function validateToken(req, token) {
+    try {
+        console.log(token);
+        // no token
+        if (!token) return "no token";
+        // verify token
+        try {
+            const decoded = jwt.verify(token, secret);
+            req.decoded = decoded;
+            return "token ok"
+        } catch (exception) {
+            console.log(exception);
+            return "invalid token"
+        }
     } catch (error) {
         console.log(error)
     }
@@ -246,9 +298,25 @@ app.get("/isUserExist/:user_name", (req, res) => {
 })
 
 app.get("/getRandomPOI/:min_rank", (req, res) => {
-    getRandomPOI(req.params.min_rank)
+    const token = req.header("X-auth-token")
+    validateToken(req, token)
     .then(function(result){
-        res.send(result)
+        if (result === "token ok") {
+            getRandomPOI(req.params.min_rank)
+            .then(function(result){
+                res.send(result)
+            })
+            .catch(function(err){
+                console.log(err)
+                res.send(err)
+            })
+        }
+        else if (result === "no token") {
+            res.status(401).send("No token provided");
+        }
+        else {
+            res.status(400).send("Invalid token");
+        }
     })
     .catch(function(err){
         console.log(err)
@@ -322,6 +390,17 @@ app.get("/getSavedListSize/:user_name", (req, res) => {
     })
 })
 
+app.get("/isPOISaved/:user_name/:poi_id", (req, res) => {
+    isPOISaved(req.params.user_name, req.params.poi_id)
+    .then(function(result){
+        res.send(result)
+    })
+    .catch(function(err){
+        console.log(err)
+        res.send(err)
+    })
+})
+
 app.post('/insert/user', function(req, res){
     addUser(req.body)
     .then(function(result){
@@ -359,6 +438,34 @@ app.post('/insertPOIReview', function(req, res){
     addPOIReview(req.body)
     .then(function(result){
         res.send(result)
+    })
+    .catch(function(err){
+        console.log(err)
+        res.send(err)
+    })
+})
+
+app.post('/saveFavoriteList', function(req, res){
+    saveFavoriteList(req.body.user_name, req.body.poi_list)
+    .then(function(result){
+        res.send(result)
+    })
+    .catch(function(err){
+        console.log(err)
+        res.send(err)
+    })
+})
+
+app.post('/login', function(req, res){
+    login(req.body.user_name, req.body.password)
+    .then(function(result){
+        if (result == true) {
+            const token = jwt.sign(req.body, secret, options);
+            res.send(token);
+        }
+        else {
+            res.send("No such user");
+        }
     })
     .catch(function(err){
         console.log(err)
