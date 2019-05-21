@@ -1,14 +1,11 @@
 var express = require('express');
+var bodyParser = require('body-parser');
 var app = express();
 var DButilsAzure = require('./DButils');
 
-var port = 3000;
-var user = new Object();
-user = {"user_name": 'moran', "password": '12345', "first_name": 'moran', "last_name": 'shimshila', "city": 'beer sheva', "country": 'israel', "email": 'moran@gmail.com', "question": 'what is your dog name', "answer": 'panda', "category_interest": ['sport', 'fashion']} ;
-var poi_id = 1;
-//review = {"user_name": 'moran', "poi_id": 2, "rank": 3, "description": 'it was fine'}
-review = {"user_name": 'yifat', "poi_id": 2, "rank": 5, "description": 'it was great'}
+app.use(bodyParser.json());
 
+var port = 3000;
 
 function getRandom(array) {
     var index = Math.floor(Math.random() * array.length);
@@ -197,6 +194,15 @@ async function getPOIDetails(poi_id) {
     }
 }
 
+async function getSavedListSize(user_name) {
+    try {
+        const poi_list_size = await DButilsAzure.execQuery("SELECT count(*) AS list_size FROM users_favorites_poi WHERE user_name = '" + user_name +  "'")
+        return poi_list_size;
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 async function login(user_name, password) {
     try {
         const u = await DButilsAzure.execQuery("SELECT * FROM users WHERE user_name = '" +user_name +"' AND password = '" + password + "'")
@@ -305,8 +311,19 @@ app.get("/getPOIDetails/:poi_id", (req, res) => {
     })
 })
 
+app.get("/getSavedListSize/:user_name", (req, res) => {
+    getSavedListSize(req.params.user_name)
+    .then(function(result){
+        res.send(result)
+    })
+    .catch(function(err){
+        console.log(err)
+        res.send(err)
+    })
+})
+
 app.post('/insert/user', function(req, res){
-    addUser(user)
+    addUser(req.body)
     .then(function(result){
         res.send(result)
     })
@@ -317,7 +334,7 @@ app.post('/insert/user', function(req, res){
 })
 
 app.post('/restorePassword', function(req, res){
-    restorePassword(user.user_name, user.question, user.answer)
+    restorePassword(req.body.user_name, req.body.question, req.body.answer)
     .then(function(result){
         res.send(result)
     })
@@ -328,7 +345,7 @@ app.post('/restorePassword', function(req, res){
 })
 
 app.post('/insertSavedPOI', function(req, res){
-    addSavedPOI(user.user_name, poi_id)
+    addSavedPOI(req.body.user_name, req.body.poi_id)
     .then(function(result){
         res.send(result)
     })
@@ -339,7 +356,7 @@ app.post('/insertSavedPOI', function(req, res){
 })
 
 app.post('/insertPOIReview', function(req, res){
-    addPOIReview(review)
+    addPOIReview(req.body)
     .then(function(result){
         res.send(result)
     })
