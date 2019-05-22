@@ -152,6 +152,7 @@ async function isPOISaved(user_name, poi_id) {
 
 async function saveFavoriteList(user_name, poi_list) {
     try {
+        await DButilsAzure.execQuery("DELETE FROM users_favorites_poi WHERE user_name = '" + user_name +  "'")
         for (var i=0; i < Object.keys(poi_list).length; i++) {
             addSavedPOI(user_name, poi_list[i])
         }

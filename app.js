@@ -16,34 +16,19 @@ app.listen(port, function () {
     console.log('Example app listening on port ' + port);
 });
 
-async function validateToken(req, token) {
-    try {
-        // no token
-        if (!token) return "no token";
-        // verify token
-        try {
-            const decoded = jwt.verify(token, secret);
-            req.decoded = decoded;
-            return "token ok"
-        } catch (exception) {
-            console.log(exception);
-            return "invalid token"
-        }
-    } catch (error) {
-        console.log(error)
-    }
-}
-
-app.get('/select', function(req, res){
-    DButilsAzure.execQuery("SELECT * FROM users")
-    .then(function(result){
-        res.send(result)
-    })
-    .catch(function(err){
-        console.log(err)
-        res.send(err)
-    })
-})
+app.use("/private", (req, res,next) => {
+	const token = req.header("x-auth-token");
+	// no token
+	if (!token) res.status(401).send("Access denied. No token provided.");
+	// verify token
+	try {
+		const decoded = jwt.verify(token, secret);
+		req.decoded = decoded;
+		next(); //move on to the actual function
+	} catch (exception) {
+		res.status(400).send("Invalid token.");
+	}
+});
 
 app.get("/select/:user_name", (req, res) => {
     module_user.getUser(req.params.user_name)
@@ -68,34 +53,7 @@ app.get("/isUserExist/:user_name", (req, res) => {
 })
 
 app.get("/getRandomPOI/:min_rank", (req, res) => {
-    const token = req.header("X-auth-token")
-    validateToken(req, token)
-    .then(function(result){
-        if (result === "token ok") {
-            module_poi.getRandomPOI(req.params.min_rank)
-            .then(function(result){
-                res.send(result)
-            })
-            .catch(function(err){
-                console.log(err)
-                res.send(err)
-            })
-        }
-        else if (result === "no token") {
-            res.status(401).send("No token provided");
-        }
-        else {
-            res.status(400).send("Invalid token");
-        }
-    })
-    .catch(function(err){
-        console.log(err)
-        res.send(err)
-    })
-})
-
-app.get("/getRecomendedPOI/:user_name", (req, res) => {
-    module_poi.getRecomendedPOI(req.params.user_name)
+    module_poi.getRandomPOI(req.params.min_rank)
     .then(function(result){
         res.send(result)
     })
@@ -105,8 +63,19 @@ app.get("/getRecomendedPOI/:user_name", (req, res) => {
     })
 })
 
-app.get("/getSavedPOI/:user_name", (req, res) => {
-    module_poi.getSavedPOI(req.params.user_name)
+app.get("/private/getRecomendedPOI", (req, res) => {
+    module_poi.getRecomendedPOI(req.decoded.user_name)
+    .then(function(result){
+        res.send(result)
+    })
+    .catch(function(err){
+        console.log(err)
+        res.send(err)
+    })
+})
+
+app.get("/private/getSavedPOI", (req, res) => {
+    module_poi.getSavedPOI(req.decoded.user_name)
     .then(function(result){
         res.send(result)
     })
@@ -149,8 +118,8 @@ app.get("/getPOIDetails/:poi_id", (req, res) => {
     })
 })
 
-app.get("/getSavedListSize/:user_name", (req, res) => {
-    module_poi.getSavedListSize(req.params.user_name)
+app.get("/private/getSavedListSize", (req, res) => {
+    module_poi.getSavedListSize(req.decoded.user_name)
     .then(function(result){
         res.send(result)
     })
@@ -160,8 +129,8 @@ app.get("/getSavedListSize/:user_name", (req, res) => {
     })
 })
 
-app.get("/isPOISaved/:user_name/:poi_id", (req, res) => {
-    module_poi.isPOISaved(req.params.user_name, req.params.poi_id)
+app.get("/private/isPOISaved/:poi_id", (req, res) => {
+    module_poi.isPOISaved(req.decoded.user_name, req.params.poi_id)
     .then(function(result){
         res.send(result)
     })
@@ -193,8 +162,8 @@ app.post('/restorePassword', function(req, res){
     })
 })
 
-app.post('/insertSavedPOI', function(req, res){
-    module_poi.addSavedPOI(req.body.user_name, req.body.poi_id)
+app.post('/private/insertSavedPOI', function(req, res){
+    module_poi.addSavedPOI(req.decoded.user_name, req.body.poi_id)
     .then(function(result){
         res.send(result)
     })
@@ -204,7 +173,7 @@ app.post('/insertSavedPOI', function(req, res){
     })
 })
 
-app.post('/insertPOIReview', function(req, res){
+app.post('/private/insertPOIReview', function(req, res){
     module_poi.addPOIReview(req.body)
     .then(function(result){
         res.send(result)
@@ -215,8 +184,8 @@ app.post('/insertPOIReview', function(req, res){
     })
 })
 
-app.post('/saveFavoriteList', function(req, res){
-    module_poi.saveFavoriteList(req.body.user_name, req.body.poi_list)
+app.post('/private/saveFavoriteList', function(req, res){
+    module_poi.saveFavoriteList(req.decoded.user_name, req.body.poi_list)
     .then(function(result){
         res.send(result)
     })
@@ -230,7 +199,8 @@ app.post('/login', function(req, res){
     module_user.login(req.body.user_name, req.body.password)
     .then(function(result){
         if (result == true) {
-            const token = jwt.sign(req.body, secret, options);
+            var payload = {user_name: req.body.user_name};
+            const token = jwt.sign(payload, secret, options);
             res.send(token);
         }
         else {
@@ -254,8 +224,8 @@ app.delete('/delete/:user_name', function(req, res){
     })
 })
 
-app.delete('/deleteSavedPOI/:user_name/:poi_id', function(req, res){
-    module_poi.deleteSavedPOI(req.params.user_name, req.params.poi_id)
+app.delete('/private/deleteSavedPOI/:poi_id', function(req, res){
+    module_poi.deleteSavedPOI(req.decoded.user_name, req.params.poi_id)
     .then(function(result){
         res.send(result)
     })
@@ -264,3 +234,5 @@ app.delete('/deleteSavedPOI/:user_name/:poi_id', function(req, res){
         res.send(err)
     })
 })
+
+
