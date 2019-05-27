@@ -34,9 +34,8 @@ async function getRecomendedPOI(user_name) {
         }
         else {
             var rec_poi_list = [];
-            console.log("SELECT * FROM points_of_interest WHERE poi_category = '" + category_interest_list[0].category_interest +  "' AND poi_rank > 2")
-            const poi_res1 = await DButilsAzure.execQuery("SELECT * FROM points_of_interest WHERE poi_category = '" + category_interest_list[0].category_interest +  "' AND poi_rank > 2")
-            const poi_res2 = await DButilsAzure.execQuery("SELECT * FROM points_of_interest WHERE poi_category = '" + category_interest_list[1].category_interest +  "' AND poi_rank > 2")
+            const poi_res1 = await DButilsAzure.execQuery("SELECT * FROM points_of_interest WHERE poi_category = '" + category_interest_list[0].category_interest +  "' AND poi_rank > 3")
+            const poi_res2 = await DButilsAzure.execQuery("SELECT * FROM points_of_interest WHERE poi_category = '" + category_interest_list[1].category_interest +  "' AND poi_rank > 3")
             if (Object.keys(poi_res1).length > 0) {
                 rec_poi_list.push(poi_res1[0]);
             }
@@ -152,11 +151,16 @@ async function isPOISaved(user_name, poi_id) {
 
 async function saveFavoriteList(user_name, poi_list) {
     try {
-        await DButilsAzure.execQuery("DELETE FROM users_favorites_poi WHERE user_name = '" + user_name +  "'")
-        for (var i=0; i < Object.keys(poi_list).length; i++) {
-            addSavedPOI(user_name, poi_list[i])
+        if (Object.keys(poi_list).length === 0) {
+            return("poi list is empty");
         }
-        return("insert successfully");
+        else {
+            await DButilsAzure.execQuery("DELETE FROM users_favorites_poi WHERE user_name = '" + user_name +  "'")
+            for (var i=0; i < Object.keys(poi_list).length; i++) {
+                addSavedPOI(user_name, poi_list[i])
+            }
+            return("insert successfully");
+        }
     } catch (error) {
         console.log(error)
     }

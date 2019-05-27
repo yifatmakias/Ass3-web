@@ -5,6 +5,7 @@ var DButilsAzure = require('./DButils');
 var jwt = require("jsonwebtoken");
 var module_user = require('./module_user');
 var module_poi = require('./module_poi');
+const { check, validationResult } = require('express-validator/check');
 
 app.use(bodyParser.json());
 
@@ -15,6 +16,8 @@ options = {expiresIn: "1d"};
 app.listen(port, function () {
     console.log('Example app listening on port ' + port);
 });
+
+module_user.parseCountries();
 
 app.use("/private", (req, res,next) => {
 	const token = req.header("x-auth-token");
@@ -140,7 +143,26 @@ app.get("/private/isPOISaved/:poi_id", (req, res) => {
     })
 })
 
-app.post('/insert/user', function(req, res){
+app.post('/insert/user',[
+    check('user_name').isLength({min: 3, max: 8}),
+    check('user_name').isAlpha(),
+    check('password').isLength({min: 5, max: 10}),
+    check('password').isAlphanumeric(),
+    check('first_name').isLength({min: 1, max: 50}),
+    check('first_name').isAlpha(),
+    check('last_name').isLength({min: 1, max: 50}),
+    check('last_name').isAlpha(),
+    check('city').isLength({min: 1, max: 50}),
+    check('question1').isLength({min: 1, max: 50}),
+    check('question2').isLength({min: 1, max: 50}),
+    check('answer1').isLength({min: 1, max: 50}),
+    check('answer2').isLength({min: 1, max: 50}),
+    check('email').isEmail(),
+] , function(req, res){
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({errors: errors.array()});
+    }
     module_user.addUser(req.body)
     .then(function(result){
         res.send(result)
@@ -151,7 +173,16 @@ app.post('/insert/user', function(req, res){
     })
 })
 
-app.post('/restorePassword', function(req, res){
+app.post('/restorePassword',[
+    check('user_name').isLength({min: 3, max: 8}),
+    check('user_name').isAlpha(),
+    check('question').isLength({min: 1, max: 50}),
+    check('answer').isLength({min: 1, max: 50}),
+], function(req, res){
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({errors: errors.array()});
+    }
     module_user.restorePassword(req.body.user_name, req.body.question, req.body.answer)
     .then(function(result){
         res.send(result)
@@ -162,7 +193,13 @@ app.post('/restorePassword', function(req, res){
     })
 })
 
-app.post('/private/insertSavedPOI', function(req, res){
+app.post('/private/insertSavedPOI',[
+    check('poi_id').isNumeric(),
+], function(req, res){
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({errors: errors.array()});
+    }
     module_poi.addSavedPOI(req.decoded.user_name, req.body.poi_id)
     .then(function(result){
         res.send(result)
@@ -173,7 +210,16 @@ app.post('/private/insertSavedPOI', function(req, res){
     })
 })
 
-app.post('/private/insertPOIReview', function(req, res){
+app.post('/private/insertPOIReview',[
+    check('user_name').isLength({min: 3, max: 8}),
+    check('user_name').isAlpha(),
+    check('rank').isNumeric(),
+    check('poi_id').isNumeric(),
+], function(req, res){
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({errors: errors.array()});
+    }
     module_poi.addPOIReview(req.body)
     .then(function(result){
         res.send(result)
@@ -195,7 +241,16 @@ app.post('/private/saveFavoriteList', function(req, res){
     })
 })
 
-app.post('/login', function(req, res){
+app.post('/login',[
+    check('user_name').isLength({min: 3, max: 8}),
+    check('user_name').isAlpha(),
+    check('password').isLength({min: 5, max: 10}),
+    check('password').isAlphanumeric(),
+], function(req, res){
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({errors: errors.array()});
+    }
     module_user.login(req.body.user_name, req.body.password)
     .then(function(result){
         if (result == true) {
