@@ -4,6 +4,7 @@ var parseString = require("xml2js").parseString;
 var jsonContries;
 var category_interest = ["shopping", "resturant", "sport", "museum"];
 
+
 async function parseCountries() {
     fs.readFile("countries.xml", "utf-8", function(err, data) {
         if (err) console.log(err);
@@ -16,6 +17,11 @@ async function parseCountries() {
           jsonContries = result;
         });
       });
+}
+
+async function getCountries() {
+    parseCountries();
+    return jsonContries;
 }
 
 async function getUser(user_name) {
@@ -120,3 +126,4 @@ module.exports.deleteUser = deleteUser;
 module.exports.restorePassword = restorePassword;
 module.exports.login = login;
 module.exports.parseCountries = parseCountries;
+module.exports.getCountries = getCountries;

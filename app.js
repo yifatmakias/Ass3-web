@@ -33,6 +33,17 @@ app.use("/private", (req, res,next) => {
 	}
 });
 
+app.get("/countries", (req, res) => {
+    module_user.getCountries()
+    .then(function(result){
+        res.send(result)
+    })
+    .catch(function(err){
+        console.log(err)
+        res.send(err)
+    })
+})
+
 app.get("/select/:user_name", (req, res) => {
     module_user.getUser(req.params.user_name)
     .then(function(result){
