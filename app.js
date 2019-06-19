@@ -5,9 +5,11 @@ var DButilsAzure = require('./DButils');
 var jwt = require("jsonwebtoken");
 var module_user = require('./module_user');
 var module_poi = require('./module_poi');
+var cors = require('cors');
 const { check, validationResult } = require('express-validator/check');
 
-app.use(bodyParser.json());
+app.use(bodyParser.json(), cors());
+app.options('*', cors());
 
 var port = 3000;
 secret = "yifatandmoran";

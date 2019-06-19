@@ -49,9 +49,9 @@ async function getRecomendedPOI(user_name) {
     }
 }
 
-async function addSavedPOI(user_name, poi_id) {
+async function addSavedPOI(user_name, poi_id, order_index) {
     try {
-        await DButilsAzure.execQuery("INSERT INTO users_favorites_poi VALUES ('" + user_name +  "', '" + poi_id +  "')")
+        await DButilsAzure.execQuery("INSERT INTO users_favorites_poi VALUES ('" + user_name +  "', '" + poi_id +  "', '" + order_index + "')")
         return("insert successfully")
     } catch (error) {
         console.log(error)
@@ -71,10 +71,12 @@ async function deleteSavedPOI(user_name, poi_id) {
 async function getSavedPOI(user_name) {
     try {
         const poi_id_list = await DButilsAzure.execQuery("SELECT poi_id FROM users_favorites_poi WHERE user_name = '" + user_name +  "'")
+        const poi_order_index_list = await DButilsAzure.execQuery("SELECT order_index FROM users_favorites_poi WHERE user_name = '" + user_name +  "'")
         var poi_list = [];
         for (var i=0; i < Object.keys(poi_id_list).length; i++) {
             const poi = await DButilsAzure.execQuery("SELECT * FROM points_of_interest WHERE poi_id = " + poi_id_list[i].poi_id);
             if (Object.keys(poi).length > 0) {
+                poi[0].order_index = poi_order_index_list[i].order_index;
                 poi_list.push(poi[0])
             }
         }
@@ -104,8 +106,12 @@ async function getPOIByName(name) {
 
 async function addPOIReview(review) {
     try {
-        await DButilsAzure.execQuery("INSERT INTO reviews (user_name, poi_id, review_rank, review_description) VALUES ('" + review.user_name +  "', " + review.poi_id +  ", " + review.rank +  ", '" + review.description +  "')")
-        await DButilsAzure.execQuery("UPDATE points_of_interest SET num_of_reviews = num_of_reviews + 1 WHERE poi_id = " + review.poi_id)
+        await DButilsAzure.execQuery("INSERT INTO reviews (user_name, poi_id, review_rank, review_description) VALUES ('" + review.user_name +  "', " + review.poi_id +  ", " + review.rank +  ", '" + review.description +  "')");
+        await DButilsAzure.execQuery("UPDATE points_of_interest SET num_of_reviews = num_of_reviews + 1 WHERE poi_id = " + review.poi_id);
+        var number_of_reviews = await DButilsAzure.execQuery("SELECT num_of_reviews FROM points_of_interest WHERE poi_id = " + review.poi_id);
+        var total_rank = await DButilsAzure.execQuery("SELECT SUM(review_rank) as total_rank FROM reviews WHERE poi_id = " + review.poi_id);
+        var new_rank = total_rank[0].total_rank/number_of_reviews[0].num_of_reviews;
+        await DButilsAzure.execQuery("UPDATE points_of_interest SET poi_rank = " + new_rank + " WHERE poi_id = " + review.poi_id);
         return("insert successfully");
     } catch (error) {
         console.log(error)
@@ -157,7 +163,7 @@ async function saveFavoriteList(user_name, poi_list) {
         else {
             await DButilsAzure.execQuery("DELETE FROM users_favorites_poi WHERE user_name = '" + user_name +  "'")
             for (var i=0; i < Object.keys(poi_list).length; i++) {
-                addSavedPOI(user_name, poi_list[i])
+                addSavedPOI(user_name, poi_list[i], i+1)
             }
             return("insert successfully");
         }

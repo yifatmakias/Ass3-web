@@ -2,7 +2,7 @@ var DButilsAzure = require('./DButils');
 var fs = require("fs");
 var parseString = require("xml2js").parseString;
 var jsonContries;
-var category_interest = ["shopping", "resturant", "sport", "museum"];
+var category_interest = ["shopping", "resturant", "attraction", "museum"];
 
 
 async function parseCountries() {
